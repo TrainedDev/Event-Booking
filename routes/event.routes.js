@@ -7,7 +7,8 @@ const {
   deleteEvent,
 } = require("../controllers/event.controller");
 const { authVerify, authorizeRoles } = require("../middleware/authVerify");
-const asyncHandler = require("../middleware/asyncHandler");
+const { asyncHandler } = require("../utils/handler");
+
 
 const route = Router();
 

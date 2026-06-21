@@ -5,7 +5,8 @@ const {
   getBookingById,
 } = require("../controllers/booking.controller");
 const { authVerify } = require("../middleware/authVerify");
-const asyncHandler = require("../middleware/asyncHandler");
+const { asyncHandler } = require("../utils/handler");
+
 
 const route = Router();
 

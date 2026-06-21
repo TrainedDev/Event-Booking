@@ -84,15 +84,16 @@ module.exports = (sq, datatypes) => {
     },
     {
       timestamps: true,
+      modelName: "Events",
     },
   );
 
   Events.associate = (model) => {
-    Events.belongsTo(model.USERS, {
+    Events.belongsTo(model.event_booking_users, {
       foreignKey: "userId",
       as: "event_organizer",
     });
-    Events.hasMany(model.BOOKINGS, {
+    Events.hasMany(model.event_booking_bookings, {
       foreignKey: "eventId",
       as: "event_bookings",
       onDelete: "CASCADE",

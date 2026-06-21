@@ -1,8 +1,8 @@
 const {
   newBookingService,
   getAllBookingsService,
-  getBookingByIdService,
-} = require("../services/booking.service");
+  getCustomerBookingByIdService,
+} = require("../services/bookings.service");
 
 const newBooking = async (req, res) => {
   const bookingData = req.body;
@@ -27,7 +27,7 @@ const getAllBookings = async (req, res) => {
 
 const getBookingById = async (req, res) => {
   const bookingId = req.params.id;
-  const booking = await getBookingByIdService(bookingId);
+  const booking = await getCustomerBookingByIdService(bookingId);
 
   res.status(200).json({
     status: "success",

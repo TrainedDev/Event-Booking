@@ -59,6 +59,8 @@ module.exports = (sq, datatypes) => {
         },
       },
 
+      modelName: "Users",
+
       hooks: {
         beforeCreate(user, options) {
           const salt = bcrypt.genSaltSync(10);
@@ -76,12 +78,12 @@ module.exports = (sq, datatypes) => {
   );
 
   Users.associate = (model) => {
-    Users.hasMany(model.EVENTS, {
+    Users.hasMany(model.event_booking_events, {
       foreignKey: "userId",
       as: "event_organizer",
       onDelete: "CASCADE",
     });
-    Users.hasMany(model.BOOKINGS, {
+    Users.hasMany(model.event_booking_bookings, {
       foreignKey: "userId",
       as: "customer_bookings",
       onDelete: "CASCADE",
