@@ -1,45 +1,48 @@
-b# Event Booking API
+# Event Booking API
 
-A backend application for managing events and customer ticket bookings, with role-based access control, transactional ticket inventory management, and asynchronous email notifications.
+A backend application for managing events and customer ticket bookings, featuring role-based access control, transactional ticket inventory management, and asynchronous email notifications using Redis and BullMQ.
 
-**Repository:** https://github.com/TrainedDev/Event-Booking
+**Repository:** [GitHub - Event Booking](https://github.com/TrainedDev/Event-Booking)
 
 ## Quick Access
 
-| Resource | Link / Details |
+| Resource | URL |
 |---|---|
-| GitHub repository | https://github.com/TrainedDev/Event-Booking |
-| Events API | `GET /api/v1/events` |
-| Create booking API | `POST /api/v1/bookings/:id` |
-| Booking route | `/api/v1/bookings/:id` |
-| Local server | `http://localhost:3000` |
-| Load testing | `k6` |
-| Background jobs | BullMQ + Redis |
+| GitHub Repository | [Event-Booking](https://github.com/TrainedDev/Event-Booking) |
+| Deployed API | [Event Booking API](https://event-booking-1-avvi.onrender.com/) |
+| Background Worker | [Event Booking Worker](https://event-booking-worker-gtsu.onrender.com/) |
+| Events API | [GET /api/v1/events](https://event-booking-1-avvi.onrender.com/api/v1/events) |
+| Create Booking API | POST /api/v1/bookings/:id |
+| API Base URL | `https://event-booking-1-avvi.onrender.com` |
+| Worker Service | `https://event-booking-worker-gtsu.onrender.com` |
+| Load Testing | k6 |
 
-> Replace or add deployed API URLs here if your final deployment is available. The local base URL above is the one used in the recorded local k6 test.
+**Note:** The worker is a separate background service that consumes BullMQ jobs from Redis. Its deployment URL is provided for service access, not as a replacement for the booking API.
 
 ## Tech Stack
 
 - Node.js and Express
 - PostgreSQL
 - Sequelize ORM
-- JWT authentication and role-based authorization
-- Redis and BullMQ for background jobs
-- Nodemailer for email notifications
-- k6 for load testing
+- JWT Authentication and Role-Based Authorization
+- Redis and BullMQ
+- Nodemailer
+- k6 for Load Testing
 
 ## Main Features
 
-- User authentication and role-based access for organizers and customers.
+- User authentication and role-based access for Organizers and Customers.
 - Organizers can create and update events.
 - Customers can browse events and book tickets.
-- Ticket inventory is updated within a database transaction.
-- Booking confirmation emails are queued for background processing.
-- Event update notifications are queued for customers who booked the event.
+- Transactional ticket inventory management.
+- Row-level database locking for concurrent booking requests.
+- Asynchronous booking confirmation emails.
+- Event update notifications for customers who booked the event.
+- Independent background worker for email processing.
 
 ## Booking Concurrency and Data Consistency
 
-The booking service uses a Sequelize transaction and a row-level update lock when reading the event:
+The booking service uses Sequelize transactions and row-level database locking when accessing event inventory.
 
 ```js
 const event = await Event.findByPk(id, {
@@ -48,38 +51,91 @@ const event = await Event.findByPk(id, {
 });
 ```
 
-It checks whether enough tickets remain, creates the booking, and decreases the event's available ticket count inside the same transaction.
+The service checks ticket availability, creates the booking, and decreases the available ticket count within the same transaction.
 
-This protects ticket inventory when multiple booking requests target the same event. If an operation inside the transaction fails, the database transaction rolls back the changes.
+This prevents concurrent booking requests from incorrectly accessing the same ticket inventory.
+
+If an operation fails, the transaction rolls back the database changes.
 
 ## Background Processing
 
-BullMQ and Redis are used to process email tasks outside the main request flow.
+BullMQ and Redis handle asynchronous email notifications outside the main API request flow.
 
-- **Booking confirmation:** after a successful booking, the API adds a `bookingConfirmation` job to the email queue.
-- **Event update notification:** when an organizer updates an event, a notification job is queued for customers who booked that event.
+Two types of jobs are processed:
 
-The worker consumes queued jobs and sends emails using Nodemailer. The API and worker should be run as separate processes in deployment environments that support background workers.
+1. **Booking Confirmation:** After a successful booking, the API queues a `bookingConfirmation` job.
+2. **Event Update Notification:** When an organizer updates an event, notification jobs are queued for customers who booked that event.
+
+The background worker runs independently from the main API server and consumes jobs from Redis.
+
+Nodemailer handles email delivery.
+
+**Architecture:**
+
+```text
+Customer / Organizer
+        |
+        v
+   Express API
+        |
+        v
+   PostgreSQL
+        |
+        v
+   Redis Queue
+        |
+        v
+ Independent Worker
+        |
+        v
+   Nodemailer
+        |
+        v
+   Email Delivery
+```
 
 ## API Quick Reference
 
-### List events
+**Base URL:**
 
-```http
-GET /api/v1/events
+```text
+https://event-booking-1-avvi.onrender.com
 ```
 
-Returns the events available through the events API.
+### 1. List Events
 
-### Create a booking
+| Method | Endpoint |
+|---|---|
+| GET | `/api/v1/events` |
+
+Full URL:
 
 ```http
-POST /api/v1/bookings/:id
+GET https://event-booking-1-avvi.onrender.com/api/v1/events
+```
+
+Returns the available events.
+
+### 2. Create Booking
+
+| Method | Endpoint |
+|---|---|
+| POST | `/api/v1/bookings/:id` |
+
+Full URL:
+
+```http
+POST https://event-booking-1-avvi.onrender.com/api/v1/bookings/:id
+```
+
+Headers:
+
+```http
 Authorization: Bearer <CUSTOMER_TOKEN>
 Content-Type: application/json
 ```
 
-Example request body:
+Request body:
 
 ```json
 {
@@ -89,113 +145,76 @@ Example request body:
 
 Replace `:id` with the event UUID and provide a valid customer access token.
 
+### 3. Authentication
+
+Authentication is handled through JWT-based authentication and role-based authorization.
+
+- Organizer access for event management.
+- Customer access for ticket booking.
+
+Refer to the repository routes and controllers for the complete authentication endpoints.
+
+## Deployment
+
+The application is deployed on Render using separate services.
+
+| Service | Deployment |
+|---|---|
+| Main API | [Open API](https://event-booking-1-avvi.onrender.com/) |
+| Background Worker | [Open Worker](https://event-booking-worker-gtsu.onrender.com/) |
+
+The API handles HTTP requests, while the independent worker processes background email jobs.
+
+Both services use the configured PostgreSQL and Redis infrastructure.
+
 ## Load Testing with k6
 
-The following results were collected locally using k6. They describe the specific test runs and are not claims about production capacity.
+The following results were collected using local k6 tests. They describe the specific test runs and are not guarantees of production capacity.
 
-### 1. Events GET endpoint
+### 1. Events GET Endpoint
 
-**Test profile:** staged load, increasing through 10, 25, 50, and 100 virtual users over 40 seconds.
+**Test profile:** Staged load increasing through 10, 25, 50, and 100 virtual users over 40 seconds.
 
 | Metric | Result |
 |---|---:|
-| Maximum configured VUs | 100 |
-| Maximum active VUs observed | 99 |
-| Total requests | 1,238 |
-| Successful checks | 1,238 / 1,238 (100%) |
-| HTTP failures | 0% |
-| Average response time | 1.20 s |
-| Median response time | 926.14 ms |
-| p90 response time | 2.57 s |
-| p95 response time | 2.84 s |
-| Maximum response time | 3.51 s |
-| Request rate | 28.50 requests/s |
+| Maximum Configured VUs | 100 |
+| Maximum Active VUs | 99 |
+| Total Requests | 1,238 |
+| Successful Checks | 1,238 / 1,238 (100%) |
+| HTTP Failures | 0% |
+| Average Response Time | 1.20 s |
+| Median Response Time | 926.14 ms |
+| p90 Response Time | 2.57 s |
+| p95 Response Time | 2.84 s |
+| Maximum Response Time | 3.51 s |
+| Request Rate | 28.50 requests/s |
 
-**Result:** All 1,238 requests passed the HTTP 200 status check during this test.
+**Result:** All 1,238 requests passed the HTTP 200 status check.
 
-### 2. Create booking endpoint
+### 2. Create Booking Endpoint
 
 **Test profile:** 50 virtual users, one booking iteration per VU, targeting the same event. Each request attempted to book one ticket.
 
 | Metric | Result |
 |---|---:|
-| Virtual users | 50 |
-| Booking requests | 50 |
-| Successful checks | 50 / 50 (100%) |
-| HTTP failures | 0% |
-| Average response time | 28.79 s |
-| Median response time | 28.91 s |
-| p90 response time | 29.54 s |
-| p95 response time | 29.67 s |
-| Maximum response time | 29.70 s |
-| Request rate | 1.68 requests/s |
+| Virtual Users | 50 |
+| Booking Requests | 50 |
+| Successful Checks | 50 / 50 (100%) |
+| HTTP Failures | 0% |
+| Average Response Time | 28.79 s |
+| Median Response Time | 28.91 s |
+| p90 Response Time | 29.54 s |
+| p95 Response Time | 29.67 s |
+| Maximum Response Time | 29.70 s |
+| Request Rate | 1.68 requests/s |
 
-**Result:** All 50 requests returned successful booking responses in this run.
+**Result:** All 50 requests returned successful booking responses in this test run.
 
-**Important:** This run demonstrates successful concurrent booking responses, but it does not by itself prove that inventory was decremented correctly in the database. Verify the event's remaining ticket count and booking records when presenting the result.
+**Important:** Successful HTTP responses alone do not prove that ticket inventory was decremented correctly. Verify the database booking records and remaining ticket count when validating concurrency behavior.
 
-### Performance notes
+### Performance Notes
 
-- The GET test completed 1,238 requests with no failed HTTP checks.
-- The 50-user booking test completed all 50 booking requests, but response times were high.
-- A previous 50-user booking run had an average response time of 20.3 seconds and p95 of 21.08 seconds. The later run recorded 28.79 seconds average and 29.67 seconds p95.
-- These two booking runs do not demonstrate a performance improvement. They should be presented as separate test observations, not as a before-and-after improvement.
-- Requests competing for the same event inventory can wait on the database row lock.
-
-## Running Locally
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/TrainedDev/Event-Booking.git
-cd Event-Booking
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Configure the environment variables required by the application. Do not commit real secrets, database passwords, JWT secrets, or SMTP credentials.
-
-4. Ensure PostgreSQL and Redis are available, then run the database setup/migrations used by the project.
-
-5. Start the API using the start script defined in `package.json`.
-
-6. Start the BullMQ worker using the worker script defined in `package.json` (run it as a separate process).
-
-> Check the actual scripts in `package.json`; command names may differ between environments.
-
-## Load Test Commands
-
-Run the events GET test:
-
-```bash
-k6 run tests/get-events.js
-```
-
-Run the booking concurrency test:
-
-```bash
-k6 run tests/create-booking.js
-```
-
-Ensure the API, database, Redis, test event, and customer token are configured before running the booking test. Use a test event with sufficient remaining tickets for a successful-booking load test.
-
-## Design Decisions and AI Assistance
-
-AI tools were used as development support to explore implementation approaches, understand potential bottlenecks, and assist with debugging. The final implementation was reviewed and tested by the developer.
-
-Key design decisions:
-
-- Use database transactions to keep booking creation and ticket inventory updates consistent.
-- Use a row-level update lock to protect the same event's ticket inventory from conflicting concurrent bookings.
-- Move email delivery to BullMQ background jobs so email sending is handled outside the main API request.
-- Use k6 to observe API behavior under concurrent load.
-
-## Notes
-
-- Load-test results are from a local environment and depend on the machine, database, Redis instance, and test data.
-- The reported VU count is the number of virtual users in the k6 test, not a guaranteed number of real-world users the application can support.
-- Confirm worker logs and email delivery separately before claiming that emails were delivered successfully.
+- The GET test completed 1,238 requests without failed HTTP checks.
+- The booking test completed all 50 requests successfully.
+- Booking response times were high because requests competed for the same event inventory.
+- A previous 
