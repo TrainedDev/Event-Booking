@@ -10,23 +10,23 @@ export const bookingConfirmation = async (job) => {
     totalBoughtTicketPrice,
   } = job.data;
 
-    console.log("BOOKING CONFIRMATION EMAIL:", {
-    email,
-    username,
-    eventName,
-    totalBoughtTickets,
-    totalBoughtTicketPrice,
-  });
-  // const context = `
-  //   <h2>Booking Confirmed!</h2>
-  //   <p>Hello ${username},</p>
-  //   <p>Your booking for <b>${eventName}</b> is confirmed.</p>
-  //   <p>Tickets: ${totalBoughtTickets}</p>
-  //   <p>Total Price: ₹${totalBoughtTicketPrice}</p>
-  //   <p>Thank you for booking with us!</p>
-  // `;
+  //   console.log("BOOKING CONFIRMATION EMAIL:", {
+  //   email,
+  //   username,
+  //   eventName,
+  //   totalBoughtTickets,
+  //   totalBoughtTicketPrice,
+  // });
+  const context = `
+    <h2>Booking Confirmed!</h2>
+    <p>Hello ${username},</p>
+    <p>Your booking for <b>${eventName}</b> is confirmed.</p>
+    <p>Tickets: ${totalBoughtTickets}</p>
+    <p>Total Price: ₹${totalBoughtTicketPrice}</p>
+    <p>Thank you for booking with us!</p>
+  `;
 
-  // await sendEmail(email, "Booking Confirmation", context);
+  await sendEmail(email, "Booking Confirmation", context);
 };
 
 export const eventUpdateNotification = async (job) => {
@@ -40,25 +40,25 @@ export const eventUpdateNotification = async (job) => {
     location,
   } = job.data;
 
-  console.log("EVENT UPDATE EMAIL:", {
-    email,
-    username,
-    eventName,
-    ticketPrice,
-    totalTickets,
-    description,
-    location,
-  });
+  // console.log("EVENT UPDATE EMAIL:", {
+  //   email,
+  //   username,
+  //   eventName,
+  //   ticketPrice,
+  //   totalTickets,
+  //   description,
+  //   location,
+  // });
 
-  // const context = `
-  //   <h2>Event Update Notification</h2>
-  //   <p>Hello ${username},</p>
-  //   <p>The event <b>${eventName}</b> has been updated.</p>
-  //   <p>Description: ${description}</p>
-  //   <p>Location: ${location}</p>
-  //   <p>Ticket Price: ₹${ticketPrice}</p>
-  //   <p>Available Tickets: ${totalTickets}</p>
-  // `;
+  const context = `
+    <h2>Event Update Notification</h2>
+    <p>Hello ${username},</p>
+    <p>The event <b>${eventName}</b> has been updated.</p>
+    <p>Description: ${description}</p>
+    <p>Location: ${location}</p>
+    <p>Ticket Price: ₹${ticketPrice}</p>
+    <p>Available Tickets: ${totalTickets}</p>
+  `;
 
-  // await sendEmail(email, "Event Updated", context);
+  await sendEmail(email, "Event Updated", context);
 };
