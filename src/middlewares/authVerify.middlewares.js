@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import models from "../models/index.js";
+import models from "../models/index.cjs";
 import { appError } from "../utils/handler.js";
 import { config } from "dotenv";
 

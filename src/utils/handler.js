@@ -1,12 +1,12 @@
-export const appError = (msg, status) => {
-  const error = new Error(msg);
+export const appError = (message, status) => {
+  const error = new Error(message);
   error.statuscode = status;
 
   throw error;
 };
 
 export const responseUser = (res, status, data) => {
-  res.status(status).json(msg);
+  res.status(status).json(data);
 };
 
 export const filterData = (

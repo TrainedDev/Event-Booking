@@ -22,6 +22,7 @@ module.exports = (sq, datatypes) => {
       email: {
         type: datatypes.STRING,
         allowNull: false,
+        unique: true,
         validate: {
           isEmail: {
             msg: "email should be valid",
@@ -33,8 +34,8 @@ module.exports = (sq, datatypes) => {
         allowNull: false,
         validate: {
           len: {
-            args: [4, 20],
-            msg: "password length should be between 10 to 50",
+            args: [4, 100],
+            msg: "password length should be between 4 to 100",
           },
         },
       },
@@ -44,11 +45,11 @@ module.exports = (sq, datatypes) => {
       },
     },
     {
-      timeStamps: true,
+      timestamps: true,
       indexes: [{ fields: ["email"] }],
       tableName: "eb_users",
       defaultScope: { attributes: { exclude: ["password"] } },
-      scope: {
+      scopes: {
         withPassword: {
           attributes: { include: ["password"] },
         },

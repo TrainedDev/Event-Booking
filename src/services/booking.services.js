@@ -1,4 +1,4 @@
-import models from "../models/index.js";
+import models from "../models/index.cjs";
 import { emailQueue } from "../queues/email.queues.js";
 import { appError } from "../utils/handler.js";
 
@@ -17,49 +17,65 @@ const fetchUserBookingsDetails = async (userId) => {
 };
 
 export const createBookingService = async (totalBoughtTickets, id, userId) => {
+  if (!Number.isInteger(totalBoughtTickets) || totalBoughtTickets < 1) {
+    appError("invalid ticket quantity", 400);
+  }
+
   const booking = await sequelize.transaction(async (t) => {
-    const event = await Event.findByOk(id, { transaction: t });
+    const event = await Event.findByPk(id, {
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
 
-    if (!event) appError("event not found", 400);
+    if (!event) appError("event not found", 404);
 
-    if (totalBoughtTickets > event.totalTickets)
+    if (totalBoughtTickets > event.totalTickets) {
       appError("not enough tickets", 400);
+    }
 
-    const totalBoughtTicketPrice = totalBoughtTickets * event.ticketPrice;
+    const totalBoughtTicketPrice = Math.round(
+      Number(totalBoughtTickets) * Number(event.ticketPrice) * 100,
+    );
 
     const newBooking = await Booking.create(
       {
         totalBoughtTicketPrice,
         eventId: id,
+        userId,
         totalBoughtTickets,
       },
       { transaction: t },
     );
 
-    if (event.totalTickets > 0) {
-      event.totalTickets -= totalBoughtTickets;
-    } else {
-      event.totalTickets = 0;
-    }
+    event.totalTickets -= totalBoughtTickets;
 
-    event.save();
+    await event.save({ transaction: t });
+
+    return newBooking;
+  });
+
+  const bookingDetails = await Booking.findByPk(booking.id, {
+    include: [
+      { model: Event, as: "userBookedEvents" },
+      { model: User, as: "user" },
+    ],
   });
 
   const {
     totalBoughtTicketPrice,
-    totalBoughtTickets,
+    totalBoughtTickets: bookedTickets,
     userBookedEvents: { eventName },
-    users: { username, email },
-  } = fetchUserBookingsDetails(userId);
+    user: { username, email },
+  } = bookingDetails;
 
-  await emailQueue.add(
-    "sendMail",
+  const job = await emailQueue.add(
+    "bookingConfirmation",
     {
       email,
       username,
       eventName,
-      totalBoughtTickets,
-      totalBoughtTicketPrice,
+      totalBoughtTickets: bookedTickets,
+      totalBoughtTicketPrice: totalBoughtTicketPrice / 100,
     },
     {
       attempts: 3,
@@ -72,7 +88,11 @@ export const createBookingService = async (totalBoughtTickets, id, userId) => {
     },
   );
 
-  return { msg: "booking successfully created", data: booking };
+
+  return {
+    msg: "booking successfully created",
+    data: booking,
+  };
 };
 
 export const fetchBookingsService = async (userId) => {

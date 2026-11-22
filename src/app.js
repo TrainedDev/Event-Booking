@@ -2,12 +2,12 @@ import express from "express";
 import userRouter from "./routes/user.routes.js";
 import eventRouter from "./routes/event.routes.js";
 import bookingRouter from "./routes/booking.routes.js";
-import { errorHandler } from "./utils/handler";
-import model from "./models/index.js";
+import { errorHandler } from "./utils/handler.js";
+import model from "./models/index.cjs";
 
 
 const app = express();
-const { sequelize } = model;
+const { sequelize } = model; 
 
 app.use(express.json());
 

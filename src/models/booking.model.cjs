@@ -14,7 +14,7 @@ module.exports = (sq, datatypes) => {
         validate: {
           min: {
             args: [1],
-            msg: "ticket should be more than 1",
+            msg: "ticket quantity should be at least 1",
           },
         },
       },

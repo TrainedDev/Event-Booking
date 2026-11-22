@@ -24,8 +24,8 @@ module.exports = (sq, datatypes) => {
         allowNull: false,
         validate: {
           len: {
-            args: [50, 90],
-            msg: "description length should be between 50 to 90",
+            args: [20, 1000],
+            msg: "description length should be between 20 to 1000",
           },
         },
       },
@@ -45,8 +45,8 @@ module.exports = (sq, datatypes) => {
         allowNull: false,
         validate: {
           min: {
-            args: [100],
-            msg: "ticket should be more than 100",
+            args: [1],
+            msg: "ticket should be more than 1",
           },
         },
       },
@@ -56,7 +56,7 @@ module.exports = (sq, datatypes) => {
         allowNull: false,
         validate: {
           min: {
-            args: [0],
+            args: [1],
             msg: "ticket price should be more than 0",
           },
         },
@@ -69,7 +69,9 @@ module.exports = (sq, datatypes) => {
   );
 
   Event.associate = (models) => {
-    Event.belongsTo(models.User);
+    Event.belongsTo(models.User, {
+      foreignKey: "userId",
+    });
     Event.hasMany(models.Booking, {
       foreignKey: "eventId",
       as: "customers",

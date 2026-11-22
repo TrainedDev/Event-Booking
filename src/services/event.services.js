@@ -1,8 +1,8 @@
-import models from "../models/index.js";
+import models from "../models/index.cjs";
 import { emailQueue } from "../queues/email.queues.js";
 import { appError, responseUser } from "../utils/handler.js";
 
-const { User, Event, Bookings } = models;
+const { User, Event, Booking } = models;
 
 export const createEventService = async (
   eventName,
@@ -15,7 +15,7 @@ export const createEventService = async (
   const newEvent = await Event.create({
     eventName,
     totalTickets,
-    ticketPrice,
+    ticketPrice: ticketPrice * 100,
     description,
     location,
     userId,
@@ -24,7 +24,7 @@ export const createEventService = async (
   return { msg: "event successfully created", data: newEvent };
 };
 
-export const updateEventService = async (data) => {
+export const updateEventService = async (data, id) => {
   const [updatedRows, event] = await Event.update(data, {
     where: { id },
     returning: true,
@@ -32,24 +32,27 @@ export const updateEventService = async (data) => {
 
   if (updatedRows === 0) appError("event not found", 400);
 
-  const { eventName, ticketPrice, totalTickets, description, location, id } =
+  const { eventName, ticketPrice, totalTickets, description, location } =
     event[0];
   const users = await Event.findAll({
     where: { id },
     include: [
       {
-        model: Bookings,
+        model: Booking,
         as: "customers",
         include: [{ model: User, as: "user" }],
       },
     ],
   });
 
-  for (const user of users.customers.users) {
-    const { email, username } = user;
-    await emailQueue.add("sendMail", {
+  const bookings = users[0].customers;
+
+  for (const booking of bookings) {
+    const { email, username } = booking.user;
+
+    await emailQueue.add("eventUpdateNotification", {
       eventName,
-      ticketPrice,
+      ticketPrice: (ticketPrice / 100).toFixed(2),
       totalTickets,
       description,
       location,
@@ -57,7 +60,7 @@ export const updateEventService = async (data) => {
       username,
     });
   }
-  return { msg: "event successfully updated", data: updateEvent };
+  return { msg: "event successfully updated", data: event[0] };
 };
 
 export const fetchEventsService = async () => {

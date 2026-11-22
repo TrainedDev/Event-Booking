@@ -39,7 +39,7 @@ export const getEvent = async (req, res) => {
 
   if (!id) appError("required details not found", 400);
 
-  const response = await getEventService();
+  const response = await getEventService(id);
 
   responseUser(res, 200, response);
 };
@@ -65,7 +65,7 @@ export const deleteEvent = async (req, res) => {
 
   if (!id) appError("required details not found", 400);
 
-  const response = await deleteEventService();
+  const response = await deleteEventService(id);
 
   responseUser(res, 200, response);
 };

@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { asyncHandler } from "../utils/handler";
+import { asyncHandler } from "../utils/handler.js";
 import {
   createEvent,
+  deleteEvent,
   fetchEvents,
   getEvent,
-} from "../controllers/event.controller";
-import { adminVerify, authVerify } from "../middlewares/authVerify.middlewares";
+  updateEvent,
+} from "../controllers/event.controller.js";
+import { adminVerify, authVerify } from "../middlewares/authVerify.middlewares.js";
 
 const router = Router();
 
@@ -14,7 +16,7 @@ router.post("/create", authVerify, adminVerify, asyncHandler(createEvent));
 router.get("/:id", asyncHandler(getEvent));
 router
   .route("/:id", authVerify, adminVerify)
-  .patch(asyncHandler(getEvent))
-  .delete(asyncHandler(getEvent));
+  .patch(asyncHandler(updateEvent))
+  .delete(asyncHandler(deleteEvent));
 
 export default router;
